@@ -76,7 +76,37 @@ with tab1:
 
     st.markdown("---")
 
-    # ── Chart 1: Cancel rate by reservation lead time ──
+    # ── Chart 1: Reservation → actual move-in ──
+    st.subheader("Days: reservation → actual move-in")
+    st.caption("Among moved_in tenants · 31,990 records")
+
+    include_sd = st.checkbox("Include same-day", value=True, key="rm_sd")
+    rm_data = res_movein if include_sd else res_movein[res_movein["days"] > 0]
+
+    fig2 = go.Figure(go.Bar(
+        x=rm_data["label"], y=rm_data["reservations"],
+        marker_color=["#378ADD" if d == 0 else "rgba(55,138,221,0.4)" for d in rm_data["days"]],
+        marker_line_width=0,
+        hovertemplate="%{x}: %{y:,} tenants<extra></extra>"
+    ))
+    fig2.update_layout(
+        height=380, plot_bgcolor="white",
+        xaxis=dict(tickangle=45, gridcolor="#f0f0f0"),
+        yaxis=dict(type="log", gridcolor="#f0f0f0", title="Count (log)"),
+        margin=dict(t=10, b=60, l=50, r=20)
+    )
+    st.plotly_chart(fig2, use_container_width=True)
+    st.caption("96.1% move in the same day they reserve. ~1,200 tenants planned ahead (days 1–18).")
+    with st.expander("Show raw data — reservation to move-in"):
+        st.dataframe(
+            rm_data[["label","reservations"]]
+            .rename(columns={"label":"Days","reservations":"Reservations"}),
+            use_container_width=True, hide_index=True
+        )
+
+    st.markdown("---")
+
+    # ── Chart 2: Cancel rate by reservation lead time ──
     st.subheader("Cancel rate by days between reservation and desired move-in")
     st.caption("Orange line = cancel rate · Blue bars = total reservations (log scale)")
 
@@ -130,62 +160,40 @@ with tab1:
 
     st.markdown("---")
 
-    # ── Chart 2: Reservation to actual move-in ──
-    col_a, col_b = st.columns(2)
+    # ── Chart 3: Desired vs actual move-in ──
+    st.subheader("Desired vs actual move-in date")
+    st.caption("Green = moved in early · Blue = on time · Orange = moved in late")
 
-    with col_a:
-        st.subheader("Days: reservation → actual move-in")
-        st.caption("Among moved_in tenants · 31,990 records")
+    desired_actual = pd.DataFrame({
+        "label": ["-9d","-8d","-7d","-6d","-5d","-4d","-3d","-2d","-1d","0","+1d","+2d","+3d","+4d","+5d","+6d","+7d","+8d","+9d","+10d"],
+        "n":     [38,22,21,53,49,74,110,145,223,27443,2037,171,111,61,47,35,19,11,6,8],
+        "type":  ["early","early","early","early","early","early","early","early","early","on_time","late","late","late","late","late","late","late","late","late","late"]
+    })
 
-        include_sd = st.checkbox("Include same-day", value=True, key="rm_sd")
-        rm_data = res_movein if include_sd else res_movein[res_movein["days"] > 0]
+    color_map = {"early": "#16a34a", "on_time": "#378ADD", "late": "#f0b429"}
 
-        fig2 = go.Figure(go.Bar(
-            x=rm_data["label"], y=rm_data["reservations"],
-            marker_color=["#378ADD" if d == 0 else "rgba(55,138,221,0.4)" for d in rm_data["days"]],
-            marker_line_width=0,
-            hovertemplate="%{x}: %{y:,} tenants<extra></extra>"
-        ))
-        fig2.update_layout(
-            height=340, plot_bgcolor="white",
-            xaxis=dict(tickangle=45, gridcolor="#f0f0f0"),
-            yaxis=dict(type="log", gridcolor="#f0f0f0", title="Count (log)"),
-            margin=dict(t=10, b=60, l=50, r=20)
+    fig_da = go.Figure(go.Bar(
+        x=desired_actual["label"],
+        y=desired_actual["n"],
+        marker_color=[color_map[t] for t in desired_actual["type"]],
+        marker_line_width=0,
+        hovertemplate="%{x}: %{y:,} tenants<extra></extra>"
+    ))
+    fig_da.update_layout(
+        height=380, plot_bgcolor="white",
+        xaxis=dict(tickangle=45, gridcolor="#f0f0f0"),
+        yaxis=dict(type="log", gridcolor="#f0f0f0", title="Count (log)"),
+        margin=dict(t=10, b=60, l=50, r=20)
+    )
+    st.plotly_chart(fig_da, use_container_width=True)
+    st.success("✅ 89.3% move in exactly on their desired date. Late movers (8.6%) outnumber early movers (2.1%) — people push back, not forward.")
+
+    with st.expander("Show raw data — desired vs actual move-in"):
+        st.dataframe(
+            desired_actual[["label","n"]].rename(columns={"label":"Days from desired","n":"Tenants"}),
+            use_container_width=True, hide_index=True
         )
-        st.plotly_chart(fig2, use_container_width=True)
-        st.caption("96.1% move in the same day they reserve. ~1,200 tenants planned ahead (days 1–18).")
-        with st.expander("Show raw data"):
-            st.dataframe(
-                rm_data[["label","reservations"]]
-                .rename(columns={"label":"Days","reservations":"Reservations"}),
-                use_container_width=True, hide_index=True
-            )
 
-    with col_b:
-        st.subheader("Moved in vs cancelled by lead time")
-        st.caption("Stacked view — same data as cancel rate chart")
-
-        cr_stacked = cancel_rate[cancel_rate["days"] <= 14].copy()
-        fig3 = go.Figure()
-        fig3.add_trace(go.Bar(
-            x=cr_stacked["label"], y=cr_stacked["moved_in"],
-            name="Moved in", marker_color="#16a34a",
-            hovertemplate="%{x}<br>Moved in: %{y:,}<extra></extra>"
-        ))
-        fig3.add_trace(go.Bar(
-            x=cr_stacked["label"], y=cr_stacked["cancelled"],
-            name="Cancelled", marker_color="#e05c3a",
-            hovertemplate="%{x}<br>Cancelled: %{y:,}<extra></extra>"
-        ))
-        fig3.update_layout(
-            barmode="stack", height=340, plot_bgcolor="white",
-            xaxis=dict(tickangle=45, gridcolor="#f0f0f0"),
-            yaxis=dict(gridcolor="#f0f0f0", title="Count"),
-            legend=dict(orientation="h", y=1.05),
-            margin=dict(t=10, b=60, l=50, r=20)
-        )
-        st.plotly_chart(fig3, use_container_width=True)
-        st.caption("Same-day is dominated by move-ins. From day 1 onward, cancellations overtake move-ins.")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -225,7 +233,7 @@ with tab2:
             margin=dict(t=10, b=40, l=160, r=60)
         )
         st.plotly_chart(fig4, use_container_width=True)
-        st.warning("⚠️ 46.8% logged as 'Other' — no actionable reason captured. Key data quality gap.")
+        st.caption("46.8% logged as 'Other' — no actionable reason captured. Key data quality gap.")
 
     # ── Cancel rate by inquiry type ──
     with col_b:
@@ -249,7 +257,7 @@ with tab2:
             margin=dict(t=10, b=40, l=60, r=20)
         )
         st.plotly_chart(fig5, use_container_width=True)
-        st.success("✅ Walk-ins cancel at only 9.1% vs 60.2% for internet leads — channel matters enormously.")
+        st.caption("Walk-ins cancel at only 9.1% vs 60.2% for internet leads.")
 
     st.markdown("---")
 
@@ -258,13 +266,15 @@ with tab2:
     st.caption("Sources with >50 leads · sorted by volume")
 
     def color_rate(val):
-        if val >= 80: return "background-color: #fee2e2; color: #991b1b"
-        elif val >= 60: return "background-color: #fef3c7; color: #92400e"
-        elif val >= 35: return "background-color: #dbeafe; color: #1e40af"
+        v = float(val)
+        if v >= 80: return "background-color: #fee2e2; color: #991b1b"
+        elif v >= 60: return "background-color: #fef3c7; color: #92400e"
+        elif v >= 35: return "background-color: #dbeafe; color: #1e40af"
         else: return "background-color: #dcfce7; color: #166534"
 
     src_display = sources.copy()
     src_display.columns = ["Source","Total","Moved In","Cancelled","Cancel Rate %"]
+    src_display["Cancel Rate %"] = src_display["Cancel Rate %"].map("{:.1f}".format)
     src_display["Total"] = src_display["Total"].map("{:,}".format)
     src_display["Moved In"] = src_display["Moved In"].map("{:,}".format)
     src_display["Cancelled"] = src_display["Cancelled"].map("{:,}".format)
