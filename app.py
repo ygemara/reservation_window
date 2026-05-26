@@ -121,6 +121,13 @@ with tab1:
 
     st.info("💡 **Same-day reservations cancel at only 13.5%** — these are high-intent, ready-to-move tenants. The moment someone reserves even 1 day ahead, cancel rate jumps to ~60% and keeps climbing above 90% by day 12.")
 
+    with st.expander("Show raw data — cancel rate by reservation lead time"):
+        st.dataframe(
+            cr_filtered[["label","total","moved_in","cancelled","cancel_rate"]]
+            .rename(columns={"label":"Days","total":"Total","moved_in":"Moved In","cancelled":"Cancelled","cancel_rate":"Cancel Rate %"}),
+            use_container_width=True, hide_index=True
+        )
+
     st.markdown("---")
 
     # ── Chart 2: Reservation to actual move-in ──
@@ -147,6 +154,12 @@ with tab1:
         )
         st.plotly_chart(fig2, use_container_width=True)
         st.caption("96.1% move in the same day they reserve. ~1,200 tenants planned ahead (days 1–18).")
+        with st.expander("Show raw data"):
+            st.dataframe(
+                rm_data[["label","reservations"]]
+                .rename(columns={"label":"Days","reservations":"Reservations"}),
+                use_container_width=True, hide_index=True
+            )
 
     with col_b:
         st.subheader("Moved in vs cancelled by lead time")
