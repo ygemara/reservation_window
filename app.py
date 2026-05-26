@@ -256,7 +256,7 @@ with tab2:
     src_display["Moved In"] = src_display["Moved In"].map("{:,}".format)
     src_display["Cancelled"] = src_display["Cancelled"].map("{:,}".format)
 
-    styled = src_display.style.applymap(color_rate, subset=["Cancel Rate %"])
+    styled = src_display.style.map(color_rate, subset=["Cancel Rate %"])
     st.dataframe(styled, use_container_width=True, hide_index=True)
 
     st.error("🚨 **Call Center - OpenTech Alliance (97.5%)** and **AI Agent - Uniti AI (84.0%)** together account for 11,236 leads and only 950 move-ins. These channels need immediate review.")
