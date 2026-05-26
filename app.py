@@ -194,6 +194,41 @@ with tab1:
             use_container_width=True, hide_index=True
         )
 
+    st.markdown("---")
+
+    # ── Chart 4: Reservation → cancellation ──
+    st.subheader("Days: reservation → cancellation")
+    st.caption("Among cancelled tenants only · how long after reserving did they cancel?")
+
+    res_to_cancel = pd.DataFrame({
+        "days": [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,23,24,25,26,27,29,30],
+        "cancellations": [5100,1356,1006,580,521,356,344,254,192,237,122,99,86,320,175,8,12,9,4,2,5,2,1,2,2,4,2,2,3],
+        "label": ["Same day","1d","2d","3d","4d","5d","6d","7d","8d","9d","10d","11d","12d","13d","14d","15d","16d","17d","18d","19d","20d","21d","23d","24d","25d","26d","27d","29d","30d"]
+    })
+
+    fig_rc = go.Figure(go.Bar(
+        x=res_to_cancel["label"],
+        y=res_to_cancel["cancellations"],
+        marker_color=["#e05c3a" if d == 0 else "rgba(224,92,58,0.45)" for d in res_to_cancel["days"]],
+        marker_line_width=0,
+        hovertemplate="%{x}: %{y:,} cancellations<extra></extra>"
+    ))
+    fig_rc.update_layout(
+        height=380, plot_bgcolor="white",
+        xaxis=dict(tickangle=45, gridcolor="#f0f0f0"),
+        yaxis=dict(type="log", gridcolor="#f0f0f0", title="Count (log)"),
+        margin=dict(t=10, b=60, l=50, r=20)
+    )
+    st.plotly_chart(fig_rc, use_container_width=True)
+    st.caption("49% cancel the same day they reserve. After that, cancellations drop off sharply — most of the risk is in the first 48 hours.")
+
+    with st.expander("Show raw data — reservation to cancellation"):
+        st.dataframe(
+            res_to_cancel[["label","cancellations"]]
+            .rename(columns={"label":"Days","cancellations":"Cancellations"}),
+            use_container_width=True, hide_index=True
+        )
+
 
 
 # ══════════════════════════════════════════════════════════════════════════════
